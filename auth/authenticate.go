@@ -2,6 +2,9 @@ package auth
 
 import (
 	"context"
+  "crypto/md5"
+  "encoding/hex"
+  "vote/dao"
 )
 
 type server struct {
@@ -9,9 +12,9 @@ type server struct {
 }
 
 func (s *server) Authenticate(ctx context.Context, req *AuthRequest) (*AuthResponse, error) {
-	if req.Username == "user" && req.Password == "password" {
+	if isValidLogin(req.Username, req.Password) {
 		return &AuthResponse{
-			Token:   "some-auth-token",
+			Token:   dao.GetAuthZToken(req.Username),
 			Message: "Authentication successful",
 			Success: true,
 		}, nil
@@ -36,4 +39,17 @@ func (s *server) ValidateToken(ctx context.Context, req *ValidateTokenRequest) (
 
 func NewServer() *server {
   return &server{}
+}
+
+func HashPassword(passwd string) string {
+  hash := md5.Sum([]byte(passwd))
+  return hex.EncodeToString(hash[:])
+}
+
+func isValidLogin(username string, passwd string) bool {
+  user, ok := dao.Users[username]
+  if ok && user.PasswordHash == HashPassword(passwd) {
+    return true
+  }
+  return false
 }

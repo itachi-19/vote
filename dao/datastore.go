@@ -1,6 +1,11 @@
 package dao
 
-import "github.com/gorilla/websocket"
+import (
+	"encoding/hex"
+  "crypto/md5"
+
+	"github.com/gorilla/websocket"
+)
 
 type DAO struct {
 //TODO REDIS
@@ -12,14 +17,60 @@ type DAO struct {
 
 //(dao *DAO) func GetConnections(votingSessions VotingSeession, )
 
+var VotingSesssions []VotingSession = 
+  []VotingSession{NewVotingSession("best_stock"), NewVotingSession("worst_stock") }
+
+var Users map[string]User = map[string]User{
+  "ram.0114": NewUser("ram.0114", "Abc"),
+  "shyam_24": NewUser("shyam_24", "vdf"),
+}
+
+var AuthZTokens map[string][]string = map[string][]string{ // allow access to specific voting sessions
+  "token_xyz": {"best_stock", "worst_stock"},
+  "token_abc": {"worst_stock"},
+}
+
+
 type VotingSession struct {
-  id string 
   name string
   subscribers map[User]bool
 }
 
-type User struct {
-  name string
-  id string // EPOCH_name
+type ConnectionSession struct {
   conn *websocket.Conn // TODO VALIDATE STATE before interacting with voting system
+  token string // 
 }
+
+
+type User struct {
+  Username string
+  PasswordHash string
+  Token string
+}
+
+func NewVotingSession(name string) VotingSession {
+  var subs map[User]bool
+  return VotingSession{name: name, subscribers:subs} 
+}
+
+func NewUser(username string, passwd string) User {
+  hash := md5.Sum([]byte(passwd))
+  token := username + "_233fdfFEFMXCX_token"
+  return User{Username: username, PasswordHash: hex.EncodeToString(hash[:]), Token: token}
+}
+
+func GetUser(username string) User {
+  return Users[username]
+}
+
+func GetAuthZToken(username string) string {
+  return GetUser(username).Token
+}
+
+
+/*
+establish conn
+register conn in set
+login
+user pass -> get token or invalid 
+*/
