@@ -6,7 +6,8 @@ import (
 	"net"
 
 	"google.golang.org/grpc"
-	pb "vote/auth" // Update the import path accordingly
+	"google.golang.org/grpc/reflection"
+	pb "vote/auth" // protocol buffer package
 )
 
 type server struct {
@@ -46,6 +47,7 @@ func main() {
 	}
 	s := grpc.NewServer()
 	pb.RegisterAuthServiceServer(s, &server{})
+  reflection.Register(s)
 	log.Printf("Auth server listening at %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
