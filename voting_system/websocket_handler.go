@@ -56,7 +56,7 @@ func HandleWs(w http.ResponseWriter, r *http.Request) {
         if user == nil {
           write(conn, "Auth Failed! Try again")
         } else {
-          write(conn, fmt.Sprintf("Auth Successful!. Welcome %v", user.Username))
+          write(conn, fmt.Sprintf("Auth Successful!. Welcome %v !", user.Name))
         }
 
 

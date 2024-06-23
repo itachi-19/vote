@@ -21,8 +21,8 @@ var VotingSesssions []VotingSession =
   []VotingSession{NewVotingSession("best_stock"), NewVotingSession("worst_stock") }
 
 var Users map[string]User = map[string]User{
-  "ram.0114": NewUser("ram.0114", "Abc"),
-  "shyam_24": NewUser("shyam_24", "vdf"),
+  "ram.0114": NewUser("ram.0114", "Abc", "Ram Verma"),
+  "shyam_24": NewUser("shyam_24", "vdf", "Shyam Kumar"),
 }
 
 var AuthZTokens map[string][]string = map[string][]string{ // allow access to specific voting sessions
@@ -44,6 +44,7 @@ type ConnectionSession struct {
 
 type User struct {
   Username string
+  Name string
   PasswordHash string
   Token string
 }
@@ -53,10 +54,10 @@ func NewVotingSession(name string) VotingSession {
   return VotingSession{name: name, subscribers:subs} 
 }
 
-func NewUser(username string, passwd string) User {
+func NewUser(username string, passwd string, name string) User {
   hash := md5.Sum([]byte(passwd))
   token := username + "_233fdfFEFMXCX_token"
-  return User{Username: username, PasswordHash: hex.EncodeToString(hash[:]), Token: token}
+  return User{Name: name, Username: username, PasswordHash: hex.EncodeToString(hash[:]), Token: token}
 }
 
 func GetUser(username string) User {
