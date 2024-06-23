@@ -7,9 +7,10 @@ import (
 
 	"google.golang.org/grpc"
 	pb "vote/auth"
+  "vote/dao"
 )
 
-func Login(username string, password string) {
+func Login(username string, password string) *dao.User {
 	// Set up a connection to the server.
 	conn, err := grpc.Dial("localhost:50051", grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
@@ -23,11 +24,17 @@ func Login(username string, password string) {
 	defer cancel()
 
 	// Call the Authenticate method.
-	req := &pb.AuthRequest{Username: "user", Password: "password"}
+	req := &pb.AuthRequest{Username: username, Password: password}
 	resp, err := client.Authenticate(ctx, req)
 	if err != nil {
 		log.Fatalf("could not authenticate: %v", err)
 	}
 
 	log.Printf("Response: %v %v ", resp.Message, resp.Success)
+  if resp.Success == false {
+    return nil
+  }
+
+  user := dao.GetUser(username)
+  return &user
 }
