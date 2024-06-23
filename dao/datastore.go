@@ -1,8 +1,10 @@
 package dao
 
 import (
+	"crypto/md5"
 	"encoding/hex"
-  "crypto/md5"
+	"time"
+  "fmt"
 
 	"github.com/gorilla/websocket"
 )
@@ -18,29 +20,29 @@ type DAO struct {
 //(dao *DAO) func GetConnections(votingSessions VotingSeession, )
 
 var VotingSesssions []VotingSession = 
-  []VotingSession{NewVotingSession("best_stock"), NewVotingSession("worst_stock") }
+  []VotingSession{NewVotingSession("best_smartphone"), NewVotingSession("best_tv") }
+
+var Ram User = NewUser("ram.0114", "Abc", "Ram Verma")
+var Shyam User = NewUser("shyam_24", "vdf", "Shyam Kumar")
 
 var Users map[string]User = map[string]User{
-  "ram.0114": NewUser("ram.0114", "Abc", "Ram Verma"),
-  "shyam_24": NewUser("shyam_24", "vdf", "Shyam Kumar"),
+  "ram.0114": Ram,
+  "shyam_24": Shyam,
 }
 
 var AuthZTokens map[string][]string = map[string][]string{ // allow access to specific voting sessions
-  "token_xyz": {"best_stock", "worst_stock"},
-  "token_abc": {"worst_stock"},
+  "token_xyz": {"best_smartphone", "best_tv"},
+  "token_abc": {"best_tv"},
 }
+
+var UserConnections map[string]*websocket.Conn = make(map[string]*websocket.Conn)
 
 
 type VotingSession struct {
-  name string
-  subscribers map[User]bool
+  Name string
+  Votes map[string]int
+  Subscribers map[User]bool
 }
-
-type ConnectionSession struct {
-  conn *websocket.Conn // TODO VALIDATE STATE before interacting with voting system
-  token string // 
-}
-
 
 type User struct {
   Username string
@@ -49,9 +51,38 @@ type User struct {
   Token string
 }
 
+func Broadcast(votingSession VotingSession) {
+  for user := range votingSession.Subscribers {
+    notifyUser(user, votingSession.Name, votingSession.Votes)
+  }
+}
+
+func notifyUser(user User, name string, votes map[string]int) {
+  conn, err := UserConnections[user.Username]
+  if err {
+    return
+  }
+  conn.WriteMessage(websocket.TextMessage,[]byte("Results for " + name + ": "))
+  for k, v := range votes {
+    conn.WriteMessage(websocket.TextMessage,[]byte(fmt.Sprintf("%v -> %v", k, v)))
+  }
+}
+
 func NewVotingSession(name string) VotingSession {
-  var subs map[User]bool
-  return VotingSession{name: name, subscribers:subs} 
+  var subs map[User]bool = make(map[User]bool)
+  subs[Ram] = true
+  subs[Shyam] = true
+  var votes map[string]int = make(map[string]int)
+  votes["default"] = 100
+
+  delay := 20 * time.Second
+  vs := VotingSession{Name: name, Subscribers:subs, Votes: votes} 
+
+  time.AfterFunc(delay, func() {
+    //Broadcast(vs)
+  })
+
+  return vs
 }
 
 func NewUser(username string, passwd string, name string) User {
@@ -68,10 +99,8 @@ func GetAuthZToken(username string) string {
   return GetUser(username).Token
 }
 
-
-/*
-establish conn
-register conn in set
-login
-user pass -> get token or invalid 
-*/
+func RegisterNewUser(username string, passwd string, name string) *User {
+  user := NewUser(username, passwd, name)
+  Users[username] = user
+  return &user
+}

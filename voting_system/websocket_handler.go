@@ -4,7 +4,6 @@ import (
   "fmt"
   "net/http"
   "github.com/gorilla/websocket"
-  "context" 
   "vote/dao"
   "strings"
 )
@@ -37,49 +36,58 @@ func HandleWs(w http.ResponseWriter, r *http.Request) {
     }()
 
     var user *dao.User
+    prompt := "[-]:$ "
     for {
+      write(conn, prompt + "Enter a command")
       _, message, err := conn.ReadMessage()
       msg := strings.TrimSpace(string(message))
       if err != nil {
         break
       }
-      //write(conn, msg)
+
       if msg == "login" {
-        write(conn, "Ack")
-        write(conn, "Enter username: ")
+        write(conn, prompt + "Enter username: ")
         username := read(conn)
-        write(conn, "Enter password: ")
+        write(conn, prompt + "Enter password: ")
         password := read(conn)
         user = Login(username, password)
 
-
         if user == nil {
-          write(conn, "Auth Failed! Try again")
+          write(conn, prompt + "Auth Failed! Try again")
         } else {
-          write(conn, fmt.Sprintf("Auth Successful!. Welcome %v !", user.Name))
+          prompt = "[" + user.Username + "]:$ "
+          write(conn, prompt + fmt.Sprintf("Auth Successful!. Welcome %v !", user.Name))
+          dao.UserConnections[username] = conn
         }
-
-
       } else if msg == "logout" {
         // Close connection
-        break
+        write(conn, prompt + "Logging out!...")
+        conn.Close()
+
+        return
       } else if msg == "register" {
-        //TODO
+        write(conn, prompt + "Enter username: ")
+        username := read(conn)
+        write(conn, prompt + "Enter password: ")
+        password := read(conn)
+        write(conn, prompt + "Enter full name: ")
+        name := read(conn)
+        user = dao.RegisterNewUser(username, password, name)
+        prompt = "[" + user.Username + "]:$ "
+        write(conn, prompt + "User: " + user.Name + " registered!")
+        dao.UserConnections[username] = conn
       } else if msg == "vote" {
 
       } else if msg == "create_vote_session" {
+        write(conn, prompt + "Enter name of Voting Session:")
+        name := read(conn)
+        v_session := dao.NewVotingSession(name)
+        dao.VotingSesssions = append(dao.VotingSesssions, v_session)
 
+        write(conn, prompt + "Voting session created for: " + name)
       }
     }
   }()
 
 }
-
-func broadcastUpdateToClients(ctx context.Context, updateMessage []byte) {
-  // TODO
-  updateMessage = nil
-  ctx = nil
-  // ======================================
-}
-
 
